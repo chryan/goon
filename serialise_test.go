@@ -21,8 +21,8 @@ var unit1 = &testUnit{
 		2,
 		3,
 	},
-	testInner: testInner{
-		testInnerValue: 20.0,
+	TestInner: testInner{
+		TestInnerValue: 20.0,
 	},
 	Array: []int{
 		1,
@@ -31,7 +31,7 @@ var unit1 = &testUnit{
 		4,
 	},
 	InterfaceStruct: &testInner{
-		testInnerValue: 30.0,
+		TestInnerValue: 30.0,
 	},
 	InterfaceVal: "String",
 }

@@ -3,8 +3,8 @@ package goon
 import (
 	"testing"
 	"strings"
-	"fmt"
-	//"reflect"
+	"reflect"
+	"encoding/json"
 )
 
 type TestTypeFactory struct {
@@ -22,7 +22,7 @@ func (t *TestTypeFactory) New(typename, pkgname string) interface{} {
 }
 
 type testInner struct {
-	testInnerValue float32
+	TestInnerValue float32
 }
 
 type testUnit struct {
@@ -31,7 +31,7 @@ type testUnit struct {
 	Map   map[string]int
 	Seq	  []interface{}
 	Bool  bool
-	testInner testInner
+	TestInner testInner
 	Array []int
 	InterfaceStruct interface{}
 	InterfaceVal interface{}
@@ -56,8 +56,8 @@ var unit1 = &testUnit{
 		2,
 		3,
 	},
-	testInner: &testInner{
-		testInnerValue: 20.0,
+	TestInner: &testInner{
+		TestInnerValue: 20.0,
 	},
 	Array: []int{
 		1,
@@ -67,40 +67,68 @@ var unit1 = &testUnit{
 		"GASD",
 	},
 	InterfaceStruct: &testInner{
-		testInnerValue: 30.0,
+		TestInnerValue: 30.0,
 	},
 	InterfaceVal: "String",
 }`)
 
 func TestDeserialise(t *testing.T) {
+	var unitType int64
+	unitType = 10
+	compareUnit := &testUnit{
+		Name: "testUnit 1",
+		Type: &unitType,
+		Map: map[string]int{
+			"Key1": 10,
+		},
+		Seq: []interface{}{
+			0,
+			&testUnit{
+				Name: "Test",
+				Type: &unitType,
+				Bool: true,
+			},
+			2,
+			3,
+		},
+		TestInner: testInner{
+			TestInnerValue: 20.0,
+		},
+		Array: []int{
+			1,
+			2,
+			3,
+			4,
+		},
+		InterfaceStruct: &testInner{
+			TestInnerValue: 30.0,
+		},
+		InterfaceVal: "String",
+	}
+
 	valuemap, errs := UnmarshalTyped("data.goon", complexTypeTest, new(TestTypeFactory))
 
 	if errs != nil {
 		t.Logf("\n%v", strings.Join(errs.Msgs, "\n"))
 	}
 
-	var val interface{}
-	var ok bool
-
-	val, ok = valuemap["unit1"]
+	val, ok := valuemap["unit1"]
 	if !ok {
 		t.Fatalf("Failed to deserialise unit1.")
 	}
-
 	unit, ok := val.(*testUnit)
 	if !ok {
-		t.Fatalf("unit1 not of type testUnit.")
+		t.Fatalf("Failed to deserialise unit1 with type Unit")
 	}
 
-	switch {
-	case unit.Name != "testUnit 1":
-		t.Fatalf("Failed to deserialise unit1.Name")
-	case *unit.Type != 10:
-		t.Fatalf("Failed to deserialise unit1.Type")
+	if !reflect.DeepEqual(compareUnit, unit) {
+		cuj, _ := json.Marshal(compareUnit)
+		uj, _ := json.Marshal(unit)
+		t.Fatalf("Deserialised values do not match:\n%v\n%v", string(cuj), string(uj))
 	}
 }
 
 func TestDeserialiseNoType(t *testing.T) {
-	valuemap, errs := Unmarshal("data.goon", complexTypeTest)
-	fmt.Println(valuemap, errs)
+	//valuemap, errs := Unmarshal("data.goon", complexTypeTest)
+	//fmt.Println(valuemap, errs)
 }
