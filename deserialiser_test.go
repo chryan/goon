@@ -1,14 +1,13 @@
 package goon
 
 import (
-	"testing"
-	"strings"
-	"reflect"
 	"encoding/json"
+	"reflect"
+	"strings"
+	"testing"
 )
 
 type TestTypeFactory struct {
-
 }
 
 func (t *TestTypeFactory) New(typename, pkgname string) interface{} {
@@ -26,15 +25,15 @@ type testInner struct {
 }
 
 type testUnit struct {
-	Name  string
-	Type  *int64
-	Map   map[string]int
-	Seq	  []interface{}
-	Bool  bool
-	TestInner testInner
-	Array []int
+	Name            string
+	Type            *int64
+	Map             map[string]int
+	Seq             []interface{}
+	Bool            bool
+	TestInner       testInner
+	Array           []int
 	InterfaceStruct interface{}
-	InterfaceVal interface{}
+	InterfaceVal    interface{}
 }
 
 var complexTypeTest []byte = []byte(`package testdata

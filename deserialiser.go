@@ -19,21 +19,21 @@ type Errors struct {
 }
 
 type deserialiser struct {
-	fileset *token.FileSet
+	fileset     *token.FileSet
 	typefactory TypeFactory
-	errors []string
+	errors      []string
 }
 
 // Used to keep track of array element token positions.
 type arrelement struct {
 	item interface{}
-	pos token.Pos
+	pos  token.Pos
 }
 
 type mapelement struct {
-	key interface{}
+	key  interface{}
 	kpos token.Pos
-	val interface{}
+	val  interface{}
 	vpos token.Pos
 }
 
@@ -111,7 +111,7 @@ func (d *deserialiser) deserialiseMap(elts []ast.Expr) []interface{} {
 		var key interface{}
 		var kpos token.Pos
 
-		// Make sure we're dealing with 
+		// Make sure we're dealing with
 		if keyident, ok := kvexpr.Key.(*ast.Ident); ok {
 			key, kpos = keyident.Name, keyident.NamePos
 		} else {
@@ -182,45 +182,45 @@ func (d *deserialiser) assignValue(inval interface{}, outputval reflect.Value, o
 
 	// Try to assign the standard types.
 	switch fkind {
-		case reflect.Float32, reflect.Float64:
-			outputval.SetFloat(inputval.Float())
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			outputval.SetUint(inputval.Uint())
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			outputval.SetInt(inputval.Int())
-		case reflect.Bool:
-			outputval.SetBool(inputval.Bool())
-		case reflect.Struct:
-			outputval.Set(inputval.Elem())
-		case reflect.Slice:
-			slicelen := inputval.Len()
-			newslice := reflect.MakeSlice(outtype, 0, slicelen)
-			for i := 0; i < slicelen; i++ {
-				if _inval, ok := inputval.Index(i).Interface().(*arrelement); ok {
-					_outval := reflect.New(outtype.Elem()).Elem()
-					if d.assignValue(_inval.item, _outval, _outval.Type(), _inval.pos) && _outval.IsValid() {
-						newslice = reflect.Append(newslice, _outval)
+	case reflect.Float32, reflect.Float64:
+		outputval.SetFloat(inputval.Float())
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		outputval.SetUint(inputval.Uint())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		outputval.SetInt(inputval.Int())
+	case reflect.Bool:
+		outputval.SetBool(inputval.Bool())
+	case reflect.Struct:
+		outputval.Set(inputval.Elem())
+	case reflect.Slice:
+		slicelen := inputval.Len()
+		newslice := reflect.MakeSlice(outtype, 0, slicelen)
+		for i := 0; i < slicelen; i++ {
+			if _inval, ok := inputval.Index(i).Interface().(*arrelement); ok {
+				_outval := reflect.New(outtype.Elem()).Elem()
+				if d.assignValue(_inval.item, _outval, _outval.Type(), _inval.pos) && _outval.IsValid() {
+					newslice = reflect.Append(newslice, _outval)
+				}
+			}
+		}
+		outputval.Set(newslice)
+	case reflect.Map:
+		slicelen := inputval.Len()
+		newmap := reflect.MakeMap(outtype)
+		for i := 0; i < slicelen; i++ {
+			if _inval, ok := inputval.Index(i).Interface().(*mapelement); ok {
+				_outkey := reflect.New(outtype.Key()).Elem()
+				_outval := reflect.New(outtype.Elem()).Elem()
+				if d.assignValue(_inval.key, _outkey, _outkey.Type(), _inval.kpos) && _outkey.IsValid() {
+					if d.assignValue(_inval.val, _outval, _outval.Type(), _inval.kpos) && _outval.IsValid() {
+						newmap.SetMapIndex(_outkey, _outval)
 					}
 				}
 			}
-			outputval.Set(newslice)
-		case reflect.Map:
-			slicelen := inputval.Len()
-			newmap := reflect.MakeMap(outtype)
-			for i := 0; i < slicelen; i++ {
-				if _inval, ok := inputval.Index(i).Interface().(*mapelement); ok {
-					_outkey := reflect.New(outtype.Key()).Elem()
-					_outval := reflect.New(outtype.Elem()).Elem()
-					if d.assignValue(_inval.key, _outkey, _outkey.Type(), _inval.kpos) && _outkey.IsValid() {
-						if d.assignValue(_inval.val, _outval, _outval.Type(), _inval.kpos) && _outval.IsValid() {
-							newmap.SetMapIndex(_outkey, _outval)
-						}
-					}
-				}
-			}
-			outputval.Set(newmap)
-		default:
-			outputval.Set(inputval)
+		}
+		outputval.Set(newmap)
+	default:
+		outputval.Set(inputval)
 	}
 
 	success = true
@@ -240,7 +240,7 @@ func (d *deserialiser) deserialise(astval interface{}) (retval interface{}, pos 
 		pos = t.Lbrace
 		retval = d.deserialiseComposite(t)
 	case *ast.BasicLit:
-		pos	= t.ValuePos
+		pos = t.ValuePos
 		switch t.Kind {
 		case token.STRING:
 			retval = strings.Trim(t.Value, "\"")
@@ -269,9 +269,9 @@ func Unmarshal(filename string, data []byte) (map[string]interface{}, *Errors) {
 
 func UnmarshalTyped(filename string, data []byte, tf TypeFactory) (deserialised map[string]interface{}, errs *Errors) {
 	ds := &deserialiser{
-		fileset: token.NewFileSet(),
+		fileset:     token.NewFileSet(),
 		typefactory: tf,
-		errors: make([]string, 0, 8),
+		errors:      make([]string, 0, 8),
 	}
 
 	var parsedata interface{}

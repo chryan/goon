@@ -1,7 +1,6 @@
 package goon
 
-import (
-)
+import ()
 
 func Marshal(v interface{}) ([]byte, error) {
 	return nil, nil
