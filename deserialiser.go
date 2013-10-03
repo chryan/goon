@@ -263,23 +263,27 @@ func (d *deserialiser) deserialise(astval interface{}) (retval interface{}, pos 
 	return
 }
 
-func Unmarshal(filename string, data []byte) (map[string]interface{}, *Errors) {
+// Unmarshal reads goon data and returns a map of all named variables and their corresponding deserialised type.
+//
+// If data != nil, Unmarshal parses the source from data and the filename is only used when recording position information.
+// The type of the argument for the 'data' parameter must be string, []byte, or io.Reader.
+// If 'data' == nil, ParseFile parses the file specified by filename.
+func Unmarshal(filename string, data interface{}) (map[string]interface{}, *Errors) {
 	return UnmarshalTyped(filename, data, nil)
 }
 
-func UnmarshalTyped(filename string, data []byte, tf TypeFactory) (deserialised map[string]interface{}, errs *Errors) {
+// UnmarshalTyped does the same thing as Unmarshal but provides a way to instantiate custom types by string names through
+// a type factory, tf.
+//
+// If tf is unspecified, UnmarshalTyped will attempt to instantiate a map instead.
+func UnmarshalTyped(filename string, data interface{}, tf TypeFactory) (deserialised map[string]interface{}, errs *Errors) {
 	ds := &deserialiser{
 		fileset:     token.NewFileSet(),
 		typefactory: tf,
 		errors:      make([]string, 0, 8),
 	}
 
-	var parsedata interface{}
-	if len(data) > 0 {
-		parsedata = data
-	}
-
-	f, err := parser.ParseFile(ds.fileset, filename, parsedata, 0)
+	f, err := parser.ParseFile(ds.fileset, filename, data, 0)
 	if err != nil {
 		errs = &Errors{[]string{fmt.Sprintf("%v", err)}}
 		return
