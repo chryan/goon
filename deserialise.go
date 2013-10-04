@@ -10,10 +10,13 @@ import (
 	"strings"
 )
 
+// Type factory interface for instantiating types while unmarshaling.
 type TypeFactory interface {
 	New(typename, pkgname string) interface{}
 }
 
+// Unmarshal error message list.
+// Each line is a single error message generated during unmarshaling.
 type Errors struct {
 	Msgs []string
 }
@@ -30,6 +33,7 @@ type arrelement struct {
 	pos  token.Pos
 }
 
+// Used to keep track of map element token positions.
 type mapelement struct {
 	key  interface{}
 	kpos token.Pos
