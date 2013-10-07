@@ -25,10 +25,11 @@ type deserialiser struct {
 	fileset     *token.FileSet
 	typefactory TypeFactory
 	errors      []string
+	pkgname     string
 }
 
-// Used to keep track of array element token positions.
-type arrelement struct {
+// Used to keep track of sequence element token positions.
+type seqelement struct {
 	item interface{}
 	pos  token.Pos
 }
@@ -85,19 +86,19 @@ func (d *deserialiser) deserialiseStruct(typename, pkgname string, elts []ast.Ex
 	return newstruct
 }
 
-// Handle array/slice types.
-func (d *deserialiser) deserialiseArray(elts []ast.Expr) []interface{} {
+// Handle sequence types.
+func (d *deserialiser) deserialiseSeq(elts []ast.Expr) []interface{} {
 	if len(elts) == 0 {
 		return nil
 	}
 
-	arrvals := make([]interface{}, 0, len(elts))
+	seqvals := make([]interface{}, 0, len(elts))
 	for _, elt := range elts {
 		if val, pos := d.deserialise(elt); val != nil {
-			arrvals = append(arrvals, &arrelement{val, pos})
+			seqvals = append(seqvals, &seqelement{val, pos})
 		}
 	}
-	return arrvals
+	return seqvals
 }
 
 func (d *deserialiser) deserialiseMap(elts []ast.Expr) []interface{} {
@@ -131,13 +132,13 @@ func (d *deserialiser) deserialiseMap(elts []ast.Expr) []interface{} {
 	return mappairs
 }
 
-// Composites consist of arrays and structs.
+// A composite is either a sequence, map or struct.
 func (d *deserialiser) deserialiseComposite(c *ast.CompositeLit) interface{} {
 	switch t := c.Type.(type) {
 	// Standard type.
 	case *ast.Ident:
 		if d.typefactory != nil {
-			return d.deserialiseStruct(t.Name, "", c.Elts)
+			return d.deserialiseStruct(t.Name, d.pkgname, c.Elts)
 		} else {
 			return d.deserialiseMap(c.Elts)
 		}
@@ -151,7 +152,7 @@ func (d *deserialiser) deserialiseComposite(c *ast.CompositeLit) interface{} {
 			}
 		}
 	case *ast.ArrayType:
-		return d.deserialiseArray(c.Elts)
+		return d.deserialiseSeq(c.Elts)
 	case *ast.MapType:
 		return d.deserialiseMap(c.Elts)
 	}
@@ -187,9 +188,13 @@ func (d *deserialiser) assignValue(inval interface{}, outputval reflect.Value, o
 	// Try to assign the standard types.
 	switch fkind {
 	case reflect.Float32, reflect.Float64:
-		outputval.SetFloat(inputval.Float())
+		if inputval.Kind() == reflect.Int64 {
+			outputval.SetFloat(float64(inputval.Int()))
+		} else {
+			outputval.SetFloat(inputval.Float())
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		outputval.SetUint(inputval.Uint())
+		outputval.SetUint(uint64(inputval.Int()))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		outputval.SetInt(inputval.Int())
 	case reflect.Bool:
@@ -200,7 +205,7 @@ func (d *deserialiser) assignValue(inval interface{}, outputval reflect.Value, o
 		slicelen := inputval.Len()
 		newslice := reflect.MakeSlice(outtype, 0, slicelen)
 		for i := 0; i < slicelen; i++ {
-			if _inval, ok := inputval.Index(i).Interface().(*arrelement); ok {
+			if _inval, ok := inputval.Index(i).Interface().(*seqelement); ok {
 				_outval := reflect.New(outtype.Elem()).Elem()
 				if d.assignValue(_inval.item, _outval, _outval.Type(), _inval.pos) && _outval.IsValid() {
 					newslice = reflect.Append(newslice, _outval)
@@ -249,7 +254,7 @@ func (d *deserialiser) deserialise(astval interface{}) (retval interface{}, pos 
 		case token.STRING:
 			retval = strings.Trim(t.Value, "\"")
 		case token.INT:
-			if i, err := strconv.Atoi(t.Value); err == nil {
+			if i, err := strconv.ParseInt(t.Value, 10, 64); err == nil {
 				retval = i
 			}
 		case token.FLOAT:
@@ -281,22 +286,23 @@ func Unmarshal(filename string, data interface{}) (map[string]interface{}, *Erro
 //
 // If tf is unspecified, UnmarshalTyped will attempt to instantiate a map instead.
 func UnmarshalTyped(filename string, data interface{}, tf TypeFactory) (deserialised map[string]interface{}, errs *Errors) {
-	ds := &deserialiser{
-		fileset:     token.NewFileSet(),
-		typefactory: tf,
-		errors:      make([]string, 0, 8),
-	}
-
-	f, err := parser.ParseFile(ds.fileset, filename, data, 0)
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, filename, data, 0)
 	if err != nil {
 		errs = &Errors{[]string{fmt.Sprintf("%v", err)}}
 		return
 	}
 
+	ds := &deserialiser{
+		fileset:     fset,
+		typefactory: tf,
+		errors:      make([]string, 0, 8),
+		pkgname:     f.Name.Name,
+	}
+
 	deserialised = make(map[string]interface{})
 
 	for _, decl := range f.Decls {
-
 		d, ok := decl.(*ast.GenDecl)
 		if !ok || d.Tok != token.VAR || len(d.Specs) == 0 {
 			continue
@@ -307,6 +313,7 @@ func UnmarshalTyped(filename string, data interface{}, tf TypeFactory) (deserial
 			continue
 		}
 
+		//ast.Print(fset, f)
 		name := valspec.Names[0].Name
 		val, _ := ds.deserialise(valspec.Values[0])
 		deserialised[name] = val
