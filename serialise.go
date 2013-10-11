@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 type serialiser struct {
@@ -64,22 +63,8 @@ func (s *serialiser) writeNil() {
 	s.varbuff.WriteString("nil")
 }
 
-func (s *serialiser) getTypeName(typ reflect.Type) string {
-	if typename := typ.Name(); len(typename) > 0 {
-		if fullpkgname := typ.PkgPath(); len(fullpkgname) > 0 {
-			paths := strings.Split(fullpkgname, "/")
-			pkgname := paths[len(paths)-1]
-			if pkgname != s.pkgName {
-				return pkgname + "." + typename
-			}
-		}
-		return typename
-	}
-	return "interface{}"
-}
-
 func (s *serialiser) serialiseStruct(vval reflect.Value, vtype reflect.Type) {
-	s.varbuff.WriteString(s.getTypeName(vtype))
+	s.varbuff.WriteString(vtype.String())
 	s.varbuff.WriteString("{")
 
 	if numfield := vtype.NumField(); numfield > 0 {
@@ -103,7 +88,7 @@ func (s *serialiser) serialiseStruct(vval reflect.Value, vtype reflect.Type) {
 
 func (s *serialiser) serialiseSeq(vval reflect.Value, vtype reflect.Type) {
 	s.varbuff.WriteString("[]")
-	s.varbuff.WriteString(s.getTypeName(vtype))
+	s.varbuff.WriteString(vtype.String())
 	s.varbuff.WriteString("{")
 	if seqlen := vval.Len(); seqlen > 0 {
 		s.incIndent()
@@ -122,7 +107,7 @@ func (s *serialiser) serialiseSeq(vval reflect.Value, vtype reflect.Type) {
 }
 
 func (s *serialiser) serialiseMap(vval reflect.Value, vtype reflect.Type) {
-	s.varbuff.WriteString(fmt.Sprintf("map[%v]%v", s.getTypeName(vtype.Key()), s.getTypeName(vtype.Elem())))
+	s.varbuff.WriteString(fmt.Sprintf("map[%v]%v", vtype.Key().String(), vtype.Elem().String()))
 	s.varbuff.WriteString("{")
 
 	keys := vval.MapKeys()
