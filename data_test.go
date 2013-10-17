@@ -13,7 +13,7 @@ type testUnit struct {
 	Type            *int64
 	Map             map[string]int
 	Uint            uint
-	InterfaceMap	map[int]interface{}
+	InterfaceMap    map[int]interface{}
 	Seq             []interface{}
 	Bool            bool
 	TestInner       testInner
@@ -21,6 +21,7 @@ type testUnit struct {
 	InterfaceStruct interface{}
 	InterfaceVal    interface{}
 	Position        token.Position
+	Ignored         string `goon:"ignore"`
 }
 
 type TestTypeFactory struct {
@@ -137,7 +138,7 @@ var compareUnit = &testUnit{
 		1: "Test1",
 		2: int64(2),
 		3: "Test3",
-		4: &testUnit {
+		4: &testUnit{
 			Name: "Test",
 			Type: &unitType,
 			Bool: true,

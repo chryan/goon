@@ -1,9 +1,10 @@
 package goon
 
 import (
-	"testing"
 	"reflect"
+	"testing"
 )
+
 type TestUint uint16
 
 var testMapPtr = map[string]interface{}{
@@ -13,15 +14,17 @@ var testMapPtr = map[string]interface{}{
 }
 
 func TestGoon(t *testing.T) {
+	compareUnit.Ignored = "IGNORE_ME!"
 	serialisemap := map[string]interface{}{
-		"unit1":   compareUnit,
+		"unit1": compareUnit,
 		//"testptr": testUnitMapPtr,
 	}
-	
+
 	bytes, err := Marshal(serialisemap, "goon")
 	if err != nil {
 		t.Fatalf("Serialisation errors: %v", err)
 	}
+	compareUnit.Ignored = ""
 
 	deserialisemap, errs := UnmarshalTyped("data.goon", bytes, new(TestTypeFactory))
 	if errs != nil {

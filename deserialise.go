@@ -10,6 +10,10 @@ import (
 	"strings"
 )
 
+const (
+	f_Ignore = "ignore"
+)
+
 // Type factory interface for instantiating types while unmarshaling.
 type TypeFactory interface {
 	New(typename, pkgname string) interface{}
@@ -78,7 +82,19 @@ func (d *deserialiser) deserialiseStruct(typename, pkgname string, elts []ast.Ex
 
 		if val, pos := d.deserialise(kvexpr.Value); val != nil {
 			if ftype, ok := rtype.FieldByName(ident.Name); ok {
-				d.assignValue(val, fval, ftype.Type, pos)
+				props := strings.Split(ftype.Tag.Get("goon"), ",")
+
+				ignore := false
+				for _, prop := range props {
+					switch prop {
+					case f_Ignore:
+						ignore = true
+					}
+				}
+
+				if !ignore {
+					d.assignValue(val, fval, ftype.Type, pos)
+				}
 			}
 		}
 	}

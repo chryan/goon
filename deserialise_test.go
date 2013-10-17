@@ -7,7 +7,6 @@ import (
 )
 
 func TestDeserialise(t *testing.T) {
-	return
 	valuemap, errs := UnmarshalTyped("data.goon", complexTypeTest, new(TestTypeFactory))
 
 	if errs != nil {
