@@ -181,9 +181,7 @@ func (s *serialiser) serialise(vval reflect.Value) {
 	}
 }
 
-var test interface{}
-
-func Marshal(v map[string]interface{}, pkgname string) ([]byte, error) {
+func Marshal(varmap map[string]interface{}, pkgname string) ([]byte, error) {
 	s := &serialiser{
 		buffer:    bytes.NewBuffer(make([]byte, 0, 256)),
 		varbuff:   bytes.NewBuffer(make([]byte, 0, 256)),
@@ -192,7 +190,7 @@ func Marshal(v map[string]interface{}, pkgname string) ([]byte, error) {
 
 	s.init(pkgname)
 
-	for varname, val := range v {
+	for varname, val := range varmap {
 		s.startVar(varname)
 		s.startSerialise(val)
 	}
