@@ -341,3 +341,19 @@ func UnmarshalTyped(filename string, data interface{}, tf TypeFactory) (deserial
 
 	return
 }
+
+// Returns a single value from UnmarshalTyped.
+//
+// TODO: Possibly cache these values so files won't be read more than once.
+func UnmarshalTypedOne(varname, filename string, data interface{}, tf TypeFactory) (interface{}, *Errors) {
+	varmap, errs := UnmarshalTyped(filename, data, tf)
+
+	if errs != nil {
+		return nil, errs
+	}
+
+	if val, ok := varmap[varname]; ok {
+		return val, nil
+	}
+	return nil, &Errors{[]string{fmt.Sprintf("Variable %v does not exist in %v.", varname, filename)}}
+}
